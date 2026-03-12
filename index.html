@@ -582,7 +582,10 @@
 
 <header class="header">
   <div class="logo">Content<span>.</span>Studio <span style="color:var(--muted);font-size:13px;font-weight:400;">v2</span></div>
-  <span class="badge">Semana Completa</span>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <button onclick="resetApiKey()" style="background:none;border:1px solid var(--border);color:var(--muted);font-size:11px;font-weight:600;padding:6px 12px;border-radius:6px;cursor:pointer;font-family:DM Sans,sans-serif;text-transform:uppercase;letter-spacing:0.5px;" title="Trocar chave de API">🔑 Trocar chave</button>
+    <span class="badge">Semana Completa</span>
+  </div>
 </header>
 
 <main class="main">
@@ -715,7 +718,12 @@ let API_KEY = '';
 
 function checkApiKey() {
   const saved = localStorage.getItem('cs_api_key');
-  if (saved) { API_KEY = saved; document.getElementById('apikeyScreen').classList.add('hidden'); }
+  if (saved && saved.startsWith('sk-ant-')) {
+    API_KEY = saved;
+    document.getElementById('apikeyScreen').classList.add('hidden');
+  } else {
+    localStorage.removeItem('cs_api_key');
+  }
 }
 
 function saveApiKey() {
@@ -731,6 +739,14 @@ function saveApiKey() {
   API_KEY = key;
   localStorage.setItem('cs_api_key', key);
   document.getElementById('apikeyScreen').classList.add('hidden');
+}
+
+function resetApiKey() {
+  localStorage.removeItem('cs_api_key');
+  API_KEY = '';
+  document.getElementById('apikeyInput').value = '';
+  document.getElementById('apikeyError').classList.remove('visible');
+  document.getElementById('apikeyScreen').classList.remove('hidden');
 }
 
 function toggleKeyVisibility() {
@@ -826,8 +842,17 @@ Responda APENAS com o JSON, sem texto antes ou depois.`;
     renderWeek();
   } catch (e) {
     clearInterval(msgInterval);
-    alert('Erro ao gerar conteúdo. Verifique sua conexão e tente novamente.');
     console.error(e);
+    const msg = e.message || '';
+    if (msg.includes('auth') || msg.includes('401') || msg.includes('API') || msg.includes('invalid')) {
+      localStorage.removeItem('cs_api_key');
+      API_KEY = '';
+      document.getElementById('apikeyScreen').classList.remove('hidden');
+      document.getElementById('apikeyError').textContent = 'Chave inválida ou expirada. Cole sua chave novamente.';
+      document.getElementById('apikeyError').classList.add('visible');
+    } else {
+      alert('Erro ao gerar conteúdo: ' + (msg || 'Verifique sua conexão e tente novamente.'));
+    }
     document.getElementById('setupCard').style.opacity = '';
     document.getElementById('setupCard').style.pointerEvents = '';
     document.getElementById('generateBtn').disabled = false;
